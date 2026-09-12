@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilibili Checkin WebUI</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Bilibili Checkin WebUI</div>
+      <h1 data-i18n="h1">云端签到控制台</h1>
+    </div>
+    <div class="head-right">
+      <div class="status idle" id="badge"><span class="dot"></span><span id="badgeText" data-i18n="notConnected">未连接</span></div>
+      <button class="theme-btn" id="langBtn" onclick="toggleLang()" aria-label="切换语言" data-i18n-aria="langAria"><span class="txt" id="langTxt">EN</span></button>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="切换深浅主题" data-i18n-aria="themeAria">
+        <span class="ind"></span><span class="txt" id="themeTxt">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="col">
+      <section>
+        <div class="sec-head"><span class="num">1</span><h2 data-i18n="secRepo">连接仓库</h2></div>
+
+        <label class="has-help"><span data-i18n="repoLabel">仓库</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('repo')">说明</span></label>
+        <input type="text" id="repo" placeholder="yourname/bilibili_checkin" autocomplete="off" data-i18n-ph="phRepo">
+
+        <label class="has-help"><span data-i18n="tokenLabel">访问令牌</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('token')">说明</span></label>
+        <input type="password" id="token" placeholder="ghp_xxx / github_pat_xxx" autocomplete="off" data-i18n-ph="phToken">
+
+        <div class="btns">
+          <button class="btn-ghost" id="btnConnect" onclick="connect(false)" data-i18n="btnConnect">连接</button>
+        </div>
+        <div class="conn-line" id="connStatus" data-i18n="notConnected">未连接</div>
+      </section>
+
+      <section>
+        <div class="sec-head"><span class="num">2</span><h2 data-i18n="secSchedule">定时计划</h2></div>
+
+        <div class="cron-line">
+          <span class="cur" id="cronCur" data-i18n="cronCur">未加载</span>
+          <span class="cst" id="cronCst"></span>
+        </div>
+
+        <label class="has-help"><span data-i18n="cronLabel">CRON 表达式</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('cron')">说明</span></label>
+        <div class="cron-row">
+          <input type="text" id="cronInput" placeholder="0 3 * * *" autocomplete="off" data-i18n-ph="phCron">
+          <button class="btn-ghost" id="btnSaveCron" onclick="saveCron()" disabled data-i18n="btnSaveCron">保存定时</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section>
+        <div class="sec-head"><span class="num">3</span><h2 data-i18n="secConfig">任务配置</h2></div>
+
+        <label class="has-help"><span data-i18n="cookieLabel">B站 Cookie</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('cookie')">说明</span></label>
+        <textarea id="cookie" placeholder="SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx  多账号用 ### 分隔" data-i18n-ph="phCookie"></textarea>
+
+        <label class="has-help"><span data-i18n="tasksLabel">执行任务</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('tasks')">说明</span></label>
+        <div class="opts" id="taskChips">
+          <label class="opt"><input type="checkbox" value="live_sign" checked><span data-i18n="taskLive">直播签到</span></label>
+          <label class="opt"><input type="checkbox" value="manga_sign" checked><span data-i18n="taskManga">漫画签到</span></label>
+          <label class="opt"><input type="checkbox" value="share_video" checked><span data-i18n="taskShare">分享视频</span></label>
+          <label class="opt"><input type="checkbox" value="add_coin" checked><span data-i18n="taskCoin">视频投币</span></label>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label class="sub has-help"><span data-i18n="coinNumLabel">投币数量</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('coinNum')">说明</span></label>
+            <input type="number" id="coinNum" min="0" max="5" value="1">
+          </div>
+          <div>
+            <label class="sub has-help"><span data-i18n="coinSourceLabel">投币来源</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('coinSource')">说明</span></label>
+            <div class="opts" id="coinSourceOpts">
+              <label class="opt"><input type="radio" name="coinSource" value="dynamic" checked><span data-i18n="srcDynamic">动态</span></label>
+              <label class="opt"><input type="radio" name="coinSource" value="ranking"><span data-i18n="srcRanking">排行榜</span></label>
+            </div>
+          </div>
+        </div>
+
+        <label class="has-help"><span data-i18n="likeLabel">投币点赞</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('like')">说明</span></label>
+        <div class="opts">
+          <label class="opt"><input type="checkbox" id="coinLike" checked><span data-i18n="likeOpt">同时点赞</span></label>
+        </div>
+
+        <label class="has-help"><span data-i18n="pushLabel">PushPlus Token</span><span class="q" data-i18n="helpTag" tabindex="0" onclick="openHelp('push')">说明</span></label>
+        <input type="password" id="pushToken" placeholder="用于微信推送" data-i18n-ph="phPush">
+
+        <div class="btns">
+          <button class="btn-ghost" id="btnSaveCfg" onclick="saveConfig()" disabled data-i18n="btnSaveCfg">保存配置</button>
+        </div>
+
+        <div id="secretStatus"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="runs-wrap">
+        <div class="sec-head"><span class="num">4</span><h2 data-i18n="secRuns">运行控制</h2></div>
+
+        <div class="toolbar">
+          <button class="btn-run" id="btnRun" onclick="runNow()" disabled><span data-i18n="btnRun">立即运行</span><span class="arr">→</span></button>
+          <button class="btn-ghost" id="btnRefresh" onclick="loadRuns()" disabled data-i18n="btnRefresh">刷新记录</button>
+          <a class="btn-ghost" id="ghLink" href="#" target="_blank" rel="noopener" style="text-decoration:none" aria-disabled="true" data-i18n="ghLink">GitHub↗</a>
+        </div>
+        <div class="runs-scroll"><div id="runs"><div class="empty" data-i18n="runsEmptyInit">连接后显示运行记录</div></div></div>
+      </section>
+
+      <section class="log-wrap">
+        <div class="sec-head"><span class="num">5</span><h2 data-i18n="secLogs">运行日志</h2></div>
+        <div class="log-box" id="log"><div class="empty" data-i18n="logsEmpty">点击运行记录的「日志」查看</div></div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p data-i18n="footer">Token 存储于浏览器 localStorage · 请勿在公共设备使用 · 仅供学习交流使用</p>
+  </footer>
+</div>
+
+<div class="modal-mask" id="helpMask" onclick="if (event.target === this) closeHelp()">
+  <div class="modal">
+    <div class="modal-head"><span class="mt" id="helpTitle"></span><button class="modal-x" onclick="closeHelp()" aria-label="close" data-i18n-aria="helpClose"></button></div>
+    <span class="modal-var" id="helpVar"></span>
+    <div class="modal-body" id="helpBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
