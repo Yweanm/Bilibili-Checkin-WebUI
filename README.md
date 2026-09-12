@@ -38,6 +38,7 @@
 └── console/
     ├── index.html                              # 五区布局的控制台页面
     ├── app.js                                  # GitHub API 交互与前端逻辑
+    ├── sodium-core.js / sodium.js              # 本地加密组件（Secrets 加密，免 CDN）
     ├── style.css                               # 主题与移动端适配样式
     └── theme.js                                # 主题初始化脚本
 ```
@@ -133,7 +134,7 @@ python main.py
 | `Bili_jct(csrf) 未找到` | Cookie 缺 `bili_jct` 字段 |
 | 连接报 401 | Token 无效 / 过期 |
 | 连接报 403 / 404 | 仓库名错，或 Token 无 `repo` / 对应细粒度权限 |
-| libsodium 加载失败 | 检查 CDN 网络后重试保存 Secrets |
+| libsodium 加载失败 | 加密组件已内置本地，刷新页面后重试保存 Secrets；仍失败再检查网络 |
 | 今日投币上限已满 | 正常跳过，B 站每日投币上限 5 枚 |
 
 ## 安全与免责

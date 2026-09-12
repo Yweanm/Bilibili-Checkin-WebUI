@@ -286,17 +286,39 @@ async function ghText(path) {
   return await res.text();
 }
 
+const SODIUM_SOURCES = [
+  ['sodium-core.js', 'sodium.js'],
+  ['https://cdn.jsdelivr.net/gh/jedisct1/libsodium.js@0.7.15/dist/modules/libsodium.js',
+   'https://cdn.jsdelivr.net/gh/jedisct1/libsodium.js@0.7.15/dist/browsers/sodium.js'],
+  ['https://fastly.jsdelivr.net/gh/jedisct1/libsodium.js@0.7.15/dist/modules/libsodium.js',
+   'https://fastly.jsdelivr.net/gh/jedisct1/libsodium.js@0.7.15/dist/browsers/sodium.js']
+];
+
 let sodiumPromise = null;
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('load failed: ' + src));
+    document.head.appendChild(s);
+  });
+}
 function loadSodium() {
-  if (window.sodium) return window.sodium.ready.then(() => window.sodium);
+  if (window.sodium && window.sodium.ready) return window.sodium.ready.then(() => window.sodium);
   if (!sodiumPromise) {
-    sodiumPromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.15/dist/browsers/sodium.js';
-      s.onload = () => window.sodium.ready.then(() => resolve(window.sodium)).catch(reject);
-      s.onerror = () => reject(new Error(LANG === 'zh' ? 'libsodium 加载失败，无法加密保存密钥' : 'Failed to load libsodium, cannot encrypt secrets'));
-      document.head.appendChild(s);
-    });
+    sodiumPromise = (async () => {
+      for (const [coreSrc, wrapperSrc] of SODIUM_SOURCES) {
+        try {
+          await loadScript(coreSrc);
+          await loadScript(wrapperSrc);
+          if (!window.sodium || !window.sodium.ready) throw new Error('bad payload: ' + wrapperSrc);
+          await window.sodium.ready;
+          return window.sodium;
+        } catch (e) { /* try next source */ }
+      }
+      throw new Error(LANG === 'zh' ? 'libsodium 加载失败，无法加密保存密钥' : 'Failed to load libsodium, cannot encrypt secrets');
+    })();
   }
   return sodiumPromise;
 }
@@ -552,10 +574,13 @@ async function saveSecret(name, value) {
   const pk = await gh('/repos/' + state.repo + '/actions/secrets/public-key');
   const keyBytes = Uint8Array.from(atob(pk.data.key), c => c.charCodeAt(0));
   const msgBytes = new TextEncoder().encode(value);
-  const encrypted = sodium.crypto_box_seal(msgBytes, keyBytes, 'base64');
+  // seal 的 base64 输出是 URL-safe 且无填充，GitHub 只接受标准 base64，这里转码并补齐
+  const sealed = sodium.crypto_box_seal(msgBytes, keyBytes, 'base64');
+  const encrypted_value = sealed.replace(/-/g, '+').replace(/_/g, '/')
+    + '='.repeat((4 - sealed.length % 4) % 4);
   await gh('/repos/' + state.repo + '/actions/secrets/' + name, {
     method: 'PUT',
-    body: JSON.stringify({ encrypted_value: encrypted, key_id: pk.data.key_id })
+    body: JSON.stringify({ encrypted_value, key_id: pk.data.key_id })
   });
 }
 
