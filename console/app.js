@@ -62,7 +62,7 @@ const I18N = {
     toSaveFail: '保存失败：', toVarsSaved: '仓库变量已保存', toCookieUpd: 'Cookie 已更新', toPushUpd: 'PushPlus 已更新', toRefreshUpd: 'RefreshToken 已更新',
     toVarsLoadFail: '仓库变量读取失败：',
     toCronBad: 'Cron 格式不正确，应为 5 段式，如 0 3 * * *', toCronSaved: '定时已保存（commit 已提交）',
-    errCoinRange: '每日投币数量必须是 0–5 的整数', errSource: '投币来源只能是 dynamic（动态）或 ranking（排行榜）', errTaskChars: '执行任务选项包含非法字符',
+    errCoinRange: '每日投币数量必须是 0–5 的整数', errSource: '投币来源只能是动态或排行榜', errTaskChars: '执行任务选项包含非法字符',
     runsLoadFail: '运行记录加载失败: ', logFetchFail: '日志获取失败: ', secretLoadFail: '仓库密钥状态读取失败: ',
     secCookieLabel: 'B站 Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: '已设置 · 更新于 ', secretUnset: '未设置',
@@ -121,7 +121,7 @@ const I18N = {
     toSaveFail: 'Save failed: ', toVarsSaved: 'Repository variables saved', toCookieUpd: 'Cookie updated', toPushUpd: 'PushPlus token updated', toRefreshUpd: 'Refresh token updated',
     toVarsLoadFail: 'Failed to load variables: ',
     toCronBad: 'Invalid cron, expected 5 fields, e.g. 0 3 * * *', toCronSaved: 'Schedule saved (commit pushed)',
-    errCoinRange: 'Coins per day must be an integer from 0 to 5', errSource: 'Source must be dynamic or ranking', errTaskChars: 'Task list contains invalid characters',
+    errCoinRange: 'Coins per day must be an integer from 0 to 5', errSource: 'Source must be 动态 (dynamic) or 排行榜 (ranking)', errTaskChars: 'Task list contains invalid characters',
     runsLoadFail: 'Failed to load runs: ', logFetchFail: 'Failed to fetch log: ', secretLoadFail: 'Failed to load secrets: ',
     secCookieLabel: 'Bilibili Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: 'Set · updated ', secretUnset: 'Not set',
@@ -141,13 +141,13 @@ const HELP = {
   zh: {
     repo: { t: '仓库', n: 'owner/repo', b: 'GitHub 仓库地址，格式为 用户名/仓库名，例如 yourname/bilibili_checkin。签到任务通过该仓库的 GitHub Actions 运行' },
     token: { t: '访问令牌', n: 'PERSONAL ACCESS TOKEN', b: 'GitHub 个人访问令牌：经典 Token 勾选 repo 权限；Fine-grained Token 勾选 Actions、Variables、Secrets、Contents 的读写权限。令牌仅保存在本浏览器 localStorage，不会上传到任何第三方，请勿在公共设备使用' },
-    cookie: { t: 'B站 Cookie', n: 'BILIBILI_COOKIE · Secret 密钥', b: '浏览器登录 B 站后按 F12，从网络请求标头中复制 Cookie，需包含 SESSDATA、bili_jct、DedeUserID 字段。多账号用 ### 分隔。以密文写入仓库 Secrets，只可覆盖、不可读取；留空表示不修改' },
-    refresh: { t: 'Refresh Token', n: 'BILIBILI_REFRESH_TOKEN · Secret 密钥', b: '即浏览器 localStorage 的 ac_time_value：F12→Application→Local Storage→bilibili.com→复制 ac_time_value，多账号用 ### 与 Cookie 一一对应。配置后任务前自动检查刷新并回写 Secrets；留空表示不自动刷新' },
-    tasks: { t: '执行任务', n: 'TASK_CONFIG · Variable 变量', b: '控制每次执行的任务，用英文逗号分隔：live_sign 直播签到、manga_sign 漫画签到、share_video 分享视频、add_coin 视频投币。删除或留空该变量时执行全部默认任务，未知任务名会被忽略；观看视频为固定任务，始终执行' },
-    coinNum: { t: '投币数量', n: 'COIN_ADD_NUM · Variable 变量', b: '每日投币数量，0–5 的整数，填 0 表示不投币。实际投币数取配置值、硬币余额与 5 的最小值，硬币不足或当日投币达到上限时会自动跳过' },
-    coinSource: { t: '投币来源', n: 'COIN_VIDEO_SOURCE · Variable 变量', b: '投币目标视频的来源：dynamic 取自动态视频列表，ranking 取自排行榜视频' },
-    like: { t: '投币点赞', n: 'COIN_SELECT_LIKE · Variable 变量', b: '投币时是否同时为视频点赞：1 是，0 否' },
-    push: { t: 'PushPlus Token', n: 'PUSH_PLUS_TOKEN · Secret 密钥', b: '用于在微信上接收任务报告，Token 在 pushplus.plus 获取。以密文写入仓库 Secrets，只可覆盖、不可读取；留空表示不修改，不配置则不推送' },
+    cookie: { t: 'B站 Cookie', n: 'BILIBILI_COOKIE · 密钥', b: '浏览器登录 B 站后按 F12，从网络请求标头中复制 Cookie，需包含 SESSDATA、bili_jct、DedeUserID 字段。多账号用 ### 分隔。以密文写入仓库 Secrets，只可覆盖、不可读取；留空表示不修改' },
+    refresh: { t: 'Refresh Token', n: 'BILIBILI_REFRESH_TOKEN · 密钥', b: '即浏览器 localStorage 的 ac_time_value：F12→Application→Local Storage→bilibili.com→复制 ac_time_value，多账号用 ### 与 Cookie 一一对应。配置后任务前自动检查刷新并回写 Secrets；留空表示不自动刷新' },
+    tasks: { t: '执行任务', n: 'TASK_CONFIG · 变量', b: '控制每次执行的任务，用英文逗号分隔：直播签到、漫画签到、分享视频、视频投币。删除或留空该变量时执行全部默认任务，未知任务名会被忽略；观看视频为固定任务，始终执行' },
+    coinNum: { t: '投币数量', n: 'COIN_ADD_NUM · 变量', b: '每日投币数量，0–5 的整数，填 0 表示不投币。实际投币数取配置值、硬币余额与 5 的最小值，硬币不足或当日投币达到上限时会自动跳过' },
+    coinSource: { t: '投币来源', n: 'COIN_VIDEO_SOURCE · 变量', b: '投币目标视频的来源：动态取自动态视频列表，排行榜取自排行榜视频' },
+    like: { t: '投币点赞', n: 'COIN_SELECT_LIKE · 变量', b: '投币时是否同时为视频点赞：1 是，0 否' },
+    push: { t: 'PushPlus Token', n: 'PUSH_PLUS_TOKEN · 密钥', b: '用于在微信上接收任务报告，Token 在 pushplus.plus 获取。以密文写入仓库 Secrets，只可覆盖、不可读取；留空表示不修改，不配置则不推送' },
     cron: { t: '定时计划', n: 'CRON · UTC 时区', b: 'GitHub Actions 定时表达式，5 段式（分 时 日 月 周），例如 0 3 * * * 即北京时间每天 11:00 执行。保存会向仓库提交一次 commit；定时触发可能有数分钟延迟；仓库 60 天无活动会被自动停用定时' }
   },
   en: {
@@ -155,9 +155,9 @@ const HELP = {
     token: { t: 'Access Token', n: 'PERSONAL ACCESS TOKEN', b: 'GitHub personal access token: classic token needs the repo scope; fine-grained token needs read/write for Actions, Variables, Secrets and Contents. The token is stored only in this browser (localStorage), never sent to any third party. Do not use on shared devices' },
     cookie: { t: 'Bilibili Cookie', n: 'BILIBILI_COOKIE · Secret', b: 'Log in to bilibili.com in a browser, press F12 and copy the Cookie from a request header. It must contain SESSDATA, bili_jct and DedeUserID. Separate multiple accounts with ###. Stored encrypted as a repository Secret (overwrite only, never readable); leave empty to keep unchanged' },
     refresh: { t: 'Refresh Token', n: 'BILIBILI_REFRESH_TOKEN · Secret', b: 'The ac_time_value in browser localStorage: F12→Application→Local Storage→bilibili.com→copy ac_time_value. Separate accounts with ### matching cookies. Enables auto-refresh before tasks; leave empty to disable' },
-    tasks: { t: 'Tasks', n: 'TASK_CONFIG · Variable', b: 'Controls which tasks run each time, comma separated: live_sign (live sign-in), manga_sign (manga sign-in), share_video (share video), add_coin (add coin). Removing or clearing the variable runs all default tasks; unknown task names are ignored. Watching videos is a fixed task that always runs' },
+    tasks: { t: 'Tasks', n: 'TASK_CONFIG · Variable', b: 'Controls which tasks run each time, comma separated: 直播签到 (live sign-in), 漫画签到 (manga sign-in), 分享视频 (share video), 视频投币 (add coin). Removing or clearing the variable runs all default tasks; unknown task names are ignored. Watching videos is a fixed task that always runs' },
     coinNum: { t: 'Coins per day', n: 'COIN_ADD_NUM · Variable', b: 'Number of coins per day, integer from 0 to 5; 0 disables coin dropping. The actual count is the minimum of the configured value, your coin balance and 5; it skips automatically when coins are insufficient or the daily limit is reached' },
-    coinSource: { t: 'Coin video source', n: 'COIN_VIDEO_SOURCE · Variable', b: 'Where the coin target videos come from: dynamic (dynamic feed) or ranking (ranking list)' },
+    coinSource: { t: 'Coin video source', n: 'COIN_VIDEO_SOURCE · Variable', b: 'Where the coin target videos come from: 动态 (dynamic feed) or 排行榜 (ranking list)' },
     like: { t: 'Coin & like', n: 'COIN_SELECT_LIKE · Variable', b: 'Whether to also like the video when dropping a coin: 1 yes, 0 no' },
     push: { t: 'PushPlus Token', n: 'PUSH_PLUS_TOKEN · Secret', b: 'Receives the task report in WeChat. Get the token at pushplus.plus. Stored encrypted as a repository Secret (overwrite only, never readable); leave empty to keep unchanged, and no push is sent when unset' },
     cron: { t: 'Schedule', n: 'CRON · UTC', b: 'GitHub Actions cron expression with 5 fields (minute hour day month weekday), e.g. 0 3 * * * runs daily at 11:00 Beijing time. Saving commits a change to the workflow file; scheduled runs may start a few minutes late; schedules are disabled after 60 days of repository inactivity' }
@@ -539,8 +539,8 @@ function collectTasks() {
 
 function validateLocal(tasks, coinNum, source) {
   if (!/^\d+$/.test(coinNum) || +coinNum < 0 || +coinNum > 5) return t('errCoinRange');
-  if (source !== 'dynamic' && source !== 'ranking') return t('errSource');
-  if (tasks && /[^a-z_,\s]/i.test(tasks)) return t('errTaskChars');
+  if (source !== '动态' && source !== '排行榜') return t('errSource');
+  if (tasks && /[^\w_,\s\u4e00-\u9fff]/.test(tasks)) return t('errTaskChars');
   return null;
 }
 
@@ -567,7 +567,7 @@ async function saveConfig() {
   if (!state.connected) return;
   const tasks = collectTasks();
   const coinNum = ($('#coinNum').value.trim() || '1');
-  const source = document.querySelector('#coinSourceOpts input:checked')?.value || 'dynamic';
+  const source = document.querySelector('#coinSourceOpts input:checked')?.value || '动态';
   const like = $('#coinLike').checked ? '1' : '0';
   const err = validateLocal(tasks, coinNum, source);
   if (err) { toast(err, false); return; }
@@ -612,7 +612,7 @@ async function saveSecret(name, value) {
 }
 
 function defaultTaskMap() {
-  return { live_sign: true, manga_sign: true, share_video: true, add_coin: true };
+  return { '直播签到': true, '漫画签到': true, '分享视频': true, '视频投币': true };
 }
 
 async function loadVariables() {
@@ -627,7 +627,7 @@ async function loadVariables() {
     });
     $('#coinNum').value = map.COIN_ADD_NUM ?? '1';
     $('#coinLike').checked = (map.COIN_SELECT_LIKE ?? '1') === '1';
-    const src = map.COIN_VIDEO_SOURCE ?? 'dynamic';
+    const src = map.COIN_VIDEO_SOURCE ?? '动态';
     document.querySelectorAll('#coinSourceOpts input').forEach(rb => rb.checked = rb.value === src);
   } catch (e) {
     toast(t('toVarsLoadFail') + e.message, false);

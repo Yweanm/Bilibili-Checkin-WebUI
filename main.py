@@ -9,11 +9,11 @@ from bilibili import BilibiliTask
 from cookie_refresh import ensure_refreshed
 from push import format_push_message, send_to_pushplus
 
-DEFAULT_TASKS = ['live_sign', 'manga_sign', 'share_video', 'add_coin']
+DEFAULT_TASKS = ['直播签到', '漫画签到', '分享视频', '视频投币']
 DEFAULT_TASK_CONFIG = ','.join(DEFAULT_TASKS)
 DEFAULT_COIN_ADD_NUM = '1'
 DEFAULT_COIN_SELECT_LIKE = '1'
-DEFAULT_COIN_VIDEO_SOURCE = 'dynamic'
+DEFAULT_COIN_VIDEO_SOURCE = '动态'
 FALLBACK_BVID = 'BV1GJ411x7h7'
 
 IGNORE_FAIL_KEYWORDS = ("未配置", "跳过", "已下线")
@@ -66,7 +66,7 @@ def execute_coin_task(bili: BilibiliTask, user_info: dict, config: dict) -> tupl
 
     coins_to_add = min(coins_to_add, coin_balance, COIN_DAILY_LIMIT)
 
-    if config.get('COIN_VIDEO_SOURCE') == 'ranking':
+    if config.get('COIN_VIDEO_SOURCE') == '排行榜':
         video_list = bili.get_ranking_videos()
         logger.info("获取排行榜视频作为投币目标。")
     else:
@@ -112,13 +112,13 @@ def run_all_tasks_for_account(bili: BilibiliTask, config: dict) -> tuple[dict, d
     bvid = video_list[0] if video_list else FALLBACK_BVID
 
     tasks_result = {}
-    if 'share_video' in tasks_to_run:
+    if '分享视频' in tasks_to_run:
         tasks_result['分享视频'] = bili.share_video(bvid)
-    if 'live_sign' in tasks_to_run:
+    if '直播签到' in tasks_to_run:
         tasks_result['直播签到'] = bili.live_sign()
-    if 'manga_sign' in tasks_to_run:
+    if '漫画签到' in tasks_to_run:
         tasks_result['漫画签到'] = bili.manga_sign()
-    if 'add_coin' in tasks_to_run:
+    if '视频投币' in tasks_to_run:
         tasks_result['投币任务'] = execute_coin_task(bili, user_info, config)
 
     tasks_result['观看视频'] = bili.watch_video(bvid)
