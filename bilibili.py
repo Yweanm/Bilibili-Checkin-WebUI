@@ -33,14 +33,15 @@ class BilibiliTask:
         self.session.headers.update(self.headers)
         self.csrf = self._get_csrf()
 
-    def _get_csrf(self):
+    def _get_csrf(self) -> str | None:
         for item in self.cookie.split(';'):
             key, sep, value = item.strip().partition('=')
             if sep and key == 'bili_jct':
                 return value
         return None
 
-    def _request_json(self, method, url, name='', silent=False, **kwargs):
+    def _request_json(self, method: str, url: str, name: str = '',
+                      silent: bool = False, **kwargs) -> tuple[dict | None, str | None]:
         try:
             res = self.session.request(method, url, timeout=REQUEST_TIMEOUT, **kwargs)
             res.raise_for_status()
@@ -55,8 +56,8 @@ class BilibiliTask:
             return None, '响应JSON格式异常'
         return data, None
 
-    def _call(self, method, url, *, name='', silent=False,
-              success: SuccessSpec = '成功', fail: str = '操作失败', **kwargs):
+    def _call(self, method: str, url: str, *, name: str = '', silent: bool = False,
+              success: SuccessSpec = '成功', fail: str = '操作失败', **kwargs) -> tuple[bool, str]:
         data, err = self._request_json(method, url, name=name, silent=silent, **kwargs)
         if data and data.get('code') == 0:
             return True, success(data) if callable(success) else success
@@ -66,12 +67,13 @@ class BilibiliTask:
             return False, fail
         return False, data.get('message', fail)
 
-    def _csrf_call(self, method, url, success: SuccessSpec, fail: str, **kwargs):
+    def _csrf_call(self, method: str, url: str, success: SuccessSpec, fail: str,
+                   **kwargs) -> tuple[bool, str]:
         if not self.csrf:
             return False, CSRF_MISSING
         return self._call(method, url, success=success, fail=fail, silent=True, **kwargs)
 
-    def get_user_info(self):
+    def get_user_info(self) -> dict | None:
         data, _ = self._request_json('GET', f'{MAIN_API}/x/web-interface/nav', '用户信息')
         if data is None:
             return None
@@ -80,28 +82,30 @@ class BilibiliTask:
         logger.warning(f"获取用户信息失败: {data.get('message')}")
         return None
 
-    def get_dynamic_videos(self):
-        url = f'{MAIN_API}/x/web-interface/dynamic/region?ps=5&rid=1'
-        data, _ = self._request_json('GET', url, '动态视频')
-        if data and data.get('code') == 0:
-            return [video['bvid'] for video in data.get('data', {}).get('archives', [])]
-        return []
+    def _bvids(self, url: str, name: str, key: str) -> list[str]:
+        data, _ = self._request_json('GET', url, name)
+        if not data or data.get('code') != 0:
+            return []
+        archives = data.get('data') or {}
+        return [video['bvid'] for video in archives.get(key, [])
+                if isinstance(video, dict) and video.get('bvid')]
 
-    def get_ranking_videos(self):
-        url = f'{MAIN_API}/x/web-interface/ranking/v2?rid=0&type=all'
-        data, _ = self._request_json('GET', url, '排行榜视频')
-        if data and data.get('code') == 0:
-            return [video['bvid'] for video in data.get('data', {}).get('list', [])]
-        return []
+    def get_dynamic_videos(self) -> list[str]:
+        return self._bvids(f'{MAIN_API}/x/web-interface/dynamic/region?ps=5&rid=1',
+                           '动态视频', 'archives')
 
-    def check_video_coin_status(self, bvid):
+    def get_ranking_videos(self) -> list[str]:
+        return self._bvids(f'{MAIN_API}/x/web-interface/ranking/v2?rid=0&type=all',
+                           '排行榜视频', 'list')
+
+    def check_video_coin_status(self, bvid: str) -> bool:
         url = f'{MAIN_API}/x/web-interface/archive/coins?bvid={bvid}'
         data, _ = self._request_json('GET', url, silent=True)
         if data and data.get('code') == 0:
             return data.get('data', {}).get('multiply', 0) > 0
         return False
 
-    def add_coin(self, bvid, num=1, select_like=1):
+    def add_coin(self, bvid: str, num: int = 1, select_like: int = 1) -> tuple[bool, str]:
         return self._csrf_call(
             'POST',
             f'{MAIN_API}/x/web-interface/coin/add',
@@ -109,7 +113,7 @@ class BilibiliTask:
             data={'bvid': bvid, 'multiply': num, 'select_like': select_like, 'csrf': self.csrf},
         )
 
-    def share_video(self, bvid):
+    def share_video(self, bvid: str) -> tuple[bool, str]:
         return self._csrf_call(
             'POST',
             f'{MAIN_API}/x/web-interface/share/add',
@@ -117,7 +121,7 @@ class BilibiliTask:
             data={'bvid': bvid, 'csrf': self.csrf},
         )
 
-    def watch_video(self, bvid):
+    def watch_video(self, bvid: str) -> tuple[bool, str]:
         return self._call(
             'POST',
             f'{MAIN_API}/x/click-interface/web/heartbeat',
@@ -125,7 +129,7 @@ class BilibiliTask:
             data={'bvid': bvid, 'played_time': 30, 'csrf': self.csrf},
         )
 
-    def live_sign(self):
+    def live_sign(self) -> tuple[bool, str]:
         return self._call(
             'GET',
             f'{LIVE_API}/xlive/web-ucenter/v1/sign/DoSign',
@@ -133,7 +137,7 @@ class BilibiliTask:
             fail='直播签到失败', silent=True,
         )
 
-    def manga_sign(self):
+    def manga_sign(self) -> tuple[bool, str]:
         return self._call(
             'POST',
             f'{MANGA_API}/twirp/activity.v1.Activity/ClockIn',

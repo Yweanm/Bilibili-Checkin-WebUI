@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 
 import requests
 from loguru import logger
@@ -20,14 +20,13 @@ IGNORE_FAIL_KEYWORDS = ("未配置", "跳过", "已下线")
 REFRESH_SKIP_KEYWORDS = ("刷新", "Cookie", "refresh", "ac_time_value", "pycryptodome")
 COIN_DAILY_LIMIT = 5
 SEPARATOR = '-' * 40
-BEIJING_OFFSET = timedelta(hours=8)
+BEIJING_TZ = timezone(timedelta(hours=8))
 
 
 class BeijingFormatter:
     @staticmethod
-    def format(record):
-        dt = datetime.fromtimestamp(record["time"].timestamp(), tz=timezone.utc)
-        local_dt = dt + BEIJING_OFFSET
+    def format(record) -> str:
+        local_dt = record["time"].astimezone(BEIJING_TZ)
         record["extra"]["local_time"] = local_dt.strftime('%H:%M:%S,%f')[:-3]
         return "{time:YYYY-MM-DD HH:mm:ss,SSS}(CST {extra[local_time]}) - {level} - {message}\n"
 
@@ -49,14 +48,14 @@ def mask_uid(uid) -> str:
     return uid_str[:2] + '*' * (len(uid_str) - 2)
 
 
-def safe_int(value, default=0) -> int:
+def safe_int(value, default: int = 0) -> int:
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
 
 
-def execute_coin_task(bili, user_info, config):
+def execute_coin_task(bili: BilibiliTask, user_info: dict, config: dict) -> tuple[bool, str]:
     coins_to_add = safe_int(config.get('COIN_ADD_NUM'), 1)
     if coins_to_add <= 0:
         return True, "配置为0，跳过"
@@ -98,7 +97,7 @@ def execute_coin_task(bili, user_info, config):
     return True, f"尝试投币，最终成功 {added_coins} 枚"
 
 
-def run_all_tasks_for_account(bili, config):
+def run_all_tasks_for_account(bili: BilibiliTask, config: dict) -> tuple[dict, dict | None]:
     tasks_to_run = [task.strip() for task in config.get('TASK_CONFIG', '').split(',') if task.strip()]
     if not tasks_to_run:
         tasks_to_run = DEFAULT_TASKS
@@ -127,7 +126,7 @@ def run_all_tasks_for_account(bili, config):
     return tasks_result, user_info
 
 
-def _log_account_tasks(account_index, tasks_result):
+def _log_account_tasks(account_index: int, tasks_result: dict) -> tuple[int, int]:
     valid_task_count = 0
     valid_success_count = 0
 
@@ -153,7 +152,7 @@ def _log_account_tasks(account_index, tasks_result):
     return valid_task_count, valid_success_count
 
 
-def _log_account_user(account_index, user_info):
+def _log_account_user(account_index: int, user_info: dict | None) -> None:
     logger.info(f"=== 账号{account_index} 用户信息 ===")
     if not user_info:
         logger.error("用户信息获取失败")
@@ -172,7 +171,7 @@ def split_multi(value) -> list:
     return [c.strip() for c in value.split('###')]
 
 
-def write_github_outputs(cookie_new: str, refresh_new: str):
+def write_github_outputs(cookie_new: str, refresh_new: str) -> None:
     """供 workflow gh CLI 回写 Secrets: 输出到 $GITHUB_OUTPUT。"""
     output_file = os.environ.get("GITHUB_OUTPUT")
     if not output_file:
@@ -186,7 +185,7 @@ def write_github_outputs(cookie_new: str, refresh_new: str):
         logger.warning(f"写入 GITHUB_OUTPUT 失败(不影响任务): {e}")
 
 
-def run_all_accounts(config):
+def run_all_accounts(config: dict) -> tuple[list[dict], bool]:
     cookies = split_multi(config["BILIBILI_COOKIE"])
     cookies = [c for c in cookies if c]
     refresh_tokens = split_multi(config.get("BILIBILI_REFRESH_TOKEN"))
@@ -236,7 +235,7 @@ def run_all_accounts(config):
     return all_results, any_failed
 
 
-def main():
+def main() -> None:
     config = {
         "BILIBILI_COOKIE": os.environ.get('BILIBILI_COOKIE'),
         "BILIBILI_REFRESH_TOKEN": os.environ.get('BILIBILI_REFRESH_TOKEN'),

@@ -26,14 +26,17 @@ REQUEST_TIMEOUT = 15
 REFRESHABLE_COOKIE_KEYS = ("SESSDATA", "bili_jct", "DedeUserID", "DedeUserID__ckMd5", "sid")
 
 _refresh_csrf_re = re.compile(r'<div id="1-name">([^<]+)</div>')
+_set_cookie_re = re.compile(
+    "(" + "|".join(sorted(REFRESHABLE_COOKIE_KEYS, key=len, reverse=True)) + r")=([^;]+)"
+)
 
 
 def has_crypto() -> bool:
     return _HAS_CRYPTO
 
 
-def parse_cookie(cookie_str: str) -> dict:
-    result = {}
+def parse_cookie(cookie_str: str) -> dict[str, str]:
+    result: dict[str, str] = {}
     for item in (cookie_str or "").split(";"):
         key, sep, value = item.strip().partition("=")
         if sep and key:
@@ -46,8 +49,8 @@ def build_cookie_str(original: str, updates: dict) -> str:
     for key in REFRESHABLE_COOKIE_KEYS:
         if updates.get(key):
             merged[key] = updates[key]
-    parts = []
-    seen = set()
+    parts: list[str] = []
+    seen: set[str] = set()
     for item in (original or "").split(";"):
         key, sep, _ = item.strip().partition("=")
         if sep and key.strip() in merged and key.strip() not in seen:
@@ -74,7 +77,7 @@ def get_correspond_path(timestamp_ms: int | None = None) -> str:
     return binascii.b2a_hex(encrypted).decode()
 
 
-def _headers(cookie_str: str) -> dict:
+def _headers(cookie_str: str) -> dict[str, str]:
     return {
         "User-Agent": USER_AGENT,
         "Accept": "application/json, text/plain, */*",
@@ -83,7 +86,7 @@ def _headers(cookie_str: str) -> dict:
     }
 
 
-def check_need_refresh(cookie_str: str):
+def check_need_refresh(cookie_str: str) -> tuple[bool | None, str]:
     """检查是否需要刷新。
 
     返回 (need: bool|None, detail: str):
@@ -112,7 +115,7 @@ def check_need_refresh(cookie_str: str):
     return need, "需要刷新" if need else "无需刷新"
 
 
-def get_refresh_csrf(cookie_str: str, correspond_path: str):
+def get_refresh_csrf(cookie_str: str, correspond_path: str) -> tuple[str | None, str]:
     try:
         res = requests.get(
             CORRESPOND_URL.format(path=correspond_path),
@@ -129,9 +132,8 @@ def get_refresh_csrf(cookie_str: str, correspond_path: str):
     return match.group(1), "ok"
 
 
-def _extract_set_cookies(response) -> dict:
-    """从 refresh 接口的 Set-Cookie 中提取新 Cookie 字段。"""
-    updates = {}
+def _extract_set_cookies(response) -> dict[str, str]:
+    updates: dict[str, str] = {}
     try:
         for c in response.cookies:
             if c.name in REFRESHABLE_COOKIE_KEYS and c.value:
@@ -145,14 +147,13 @@ def _extract_set_cookies(response) -> dict:
     if not raw_headers and response.headers.get("Set-Cookie"):
         raw_headers = [response.headers.get("Set-Cookie")]
     for header in raw_headers:
-        for m in re.finditer(r"(SESSDATA|bili_jct|DedeUserID__ckMd5|DedeUserID|sid)=([^;]+)", header or ""):
+        for m in _set_cookie_re.finditer(header or ""):
             if m.group(2):
                 updates.setdefault(m.group(1), m.group(2))
     return updates
 
 
-def refresh_cookie(cookie_str: str, refresh_token: str):
-    """执行一次完整刷新,返回 (new_cookie, new_refresh_token, ok, msg)。"""
+def refresh_cookie(cookie_str: str, refresh_token: str) -> tuple[str, str, bool, str]:
     if not refresh_token:
         return cookie_str, refresh_token, False, "未配置 refresh_token(ac_time_value),跳过刷新"
     if not _HAS_CRYPTO:
@@ -219,13 +220,10 @@ def refresh_cookie(cookie_str: str, refresh_token: str):
     return new_cookie, new_refresh_token, True, "Cookie 已自动刷新"
 
 
-def ensure_refreshed(cookie_str: str, refresh_token: str):
-    """任务前调用: 仅在需要时刷新,返回 (cookie, refresh_token, refreshed, msg)。"""
+def ensure_refreshed(cookie_str: str, refresh_token: str) -> tuple[str, str, bool, str]:
     if not refresh_token:
         return cookie_str, refresh_token, False, "未配置 BILIBILI_REFRESH_TOKEN,跳过自动刷新(建议补充 ac_time_value)"
     need, detail = check_need_refresh(cookie_str)
-    if need is None:
-        return cookie_str, refresh_token, False, detail
-    if need is False:
+    if need is not True:
         return cookie_str, refresh_token, False, detail
     return refresh_cookie(cookie_str, refresh_token)

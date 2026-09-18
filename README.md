@@ -4,6 +4,22 @@
 
 > 仅供学习交流使用
 
+## 目录
+
+- [界面预览](#界面预览)
+- [功能](#功能)
+- [技术栈](#技术栈)
+- [目录结构](#目录结构)
+- [配置参考](#配置参考)
+- [快速开始](#快速开始)
+- [WebUI 控制台用法](#webui-控制台用法)
+- [Cookie 获取（含自动刷新）](#cookie-获取含自动刷新)
+- [本地运行](#本地运行)
+- [CRON 说明](#cron-说明)
+- [常见问题](#常见问题)
+- [安全与免责](#安全与免责)
+- [License](#license)
+
 ## 界面预览
 
 ![](docs/images/img1.png)
@@ -12,20 +28,20 @@
 
 ## 功能
 
-- 一键签到：直播签到（`live_sign`）、漫画签到（`manga_sign`）
-- 每日任务：分享视频（`share_video`）、视频投币（`add_coin`，0–5 枚）；观看视频为固定任务，始终执行
-- 多账号：`BILIBILI_COOKIE` / `BILIBILI_REFRESH_TOKEN` 按 `###` 分隔
-- Cookie保活：官方刷新链 `info→refresh→confirm`，`ac_time_value` 自动续期并回写 Secrets
-- 投币策略：动态 / 排行榜选片，超上限、硬币不足自动跳过，可选同时点赞
-- 推送：PushPlus 微信推送 Markdown 任务报告（含刷新状态）
-- WebUI 控制台（`console/`）：连接仓库、保存配置、改 CRON、手动触发、查看 runs / 日志，中英双语、深浅主题、移动端适配
-- 日志脱敏：用户名 / UID 打码，北京时间输出
+- **一键签到**：直播签到（`live_sign`）、漫画签到（`manga_sign`）
+- **每日任务**：分享视频（`share_video`）、视频投币（`add_coin`，0–5 枚）；观看视频为固定任务，始终执行
+- **多账号**：`BILIBILI_COOKIE` / `BILIBILI_REFRESH_TOKEN` 按 `###` 分隔
+- **Cookie 保活**：官方刷新链 `info→refresh→confirm`，`ac_time_value` 自动续期并回写 Secrets
+- **投币策略**：动态 / 排行榜选片，超上限、硬币不足自动跳过，可选同时点赞
+- **推送**：PushPlus 微信推送 Markdown 任务报告（含刷新状态）
+- **WebUI 控制台**（`console/`）：连接仓库、保存配置、改 CRON、手动触发、查看 runs / 日志，中英双语、深浅主题、移动端适配
+- **日志脱敏**：用户名 / UID 打码，北京时间输出
 
 ## 技术栈
 
-- 任务端：Python 3.11、`requests`、`loguru`、`pycryptodome`（见 `requirements.txt`）
-- 定时端：GitHub Actions（`ubuntu-22.04`，见 `.github/workflows/Bilibili_DailyCheckin.yml`）
-- 控制台：原生 HTML / CSS / JS，直调 GitHub REST API，`libsodium-wrappers` 加密 Secrets
+- **任务端**：Python 3.11、`requests`、`loguru`、`pycryptodome`（见 `requirements.txt`）
+- **定时端**：GitHub Actions（`ubuntu-22.04`，见 `.github/workflows/Bilibili_DailyCheckin.yml`）
+- **控制台**：原生 HTML / CSS / JS，直调 GitHub REST API，`libsodium-wrappers` 加密 Secrets
 
 ## 目录结构
 
@@ -49,7 +65,7 @@
 
 所有配置只涉及 4 个 Secret 与 4 个 Variable，名称、默认值均与代码一致。配置方式二选一，效果完全相同：
 
-1. **WebUI 控制台（推荐）**：在页面填写后保存，自动写入仓库，见「WebUI 控制台用法」
+1. **WebUI 控制台（推荐）**：在页面填写后保存，自动写入仓库，见「[WebUI 控制台用法](#webui-控制台用法)」
 2. **GitHub 手动配置**：仓库 `Settings → Secrets and variables → Actions`，按下表添加
 
 ### Secrets（密文，只可覆盖、不可读取）
@@ -80,7 +96,7 @@
 
 ### 2. 配置
 
-按「配置参考」完成 Secrets 与 Variables，推荐直接用 WebUI 控制台，无需进 GitHub 手动添加
+按「[配置参考](#配置参考)」完成 Secrets 与 Variables，推荐直接用 WebUI 控制台，无需进 GitHub 手动添加
 
 ### 3. 运行
 
@@ -96,7 +112,7 @@
    - Fine-grained：给 `Actions`、`Variables`、`Secrets`、`Contents` 读写权限
    - Token 只存本机 `localStorage`，勿在公共设备使用
 2. **定时计划**：读取 workflow 文件中的 `cron`，显示 UTC + 换算北京时间，保存即提交一次 commit
-3. **任务配置**：填写 Cookie / RefreshToken / PushPlus Token，勾选任务、投币数 / 来源 / 点赞后点保存配置，字段含义见「配置参考」
+3. **任务配置**：填写 Cookie / RefreshToken / PushPlus Token，勾选任务、投币数 / 来源 / 点赞后点保存配置，字段含义见「[配置参考](#配置参考)」
    - Cookie / RefreshToken / PushPlus Token 写入 Secrets，留空 = 不修改
    - 任务与投币设置写入 Variables
 4. **运行控制**：`立即运行`（`workflow_dispatch`）、`刷新记录`、跳转 GitHub
@@ -127,7 +143,7 @@ $env:COIN_VIDEO_SOURCE="dynamic"
 python main.py
 ```
 
-环境变量与「配置参考」一一对应，未设置时使用默认值
+环境变量与「[配置参考](#配置参考)」一一对应，未设置时使用默认值
 
 ## CRON 说明
 

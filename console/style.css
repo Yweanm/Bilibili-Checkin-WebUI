@@ -286,7 +286,6 @@ footer p { font-size: 12px; color: var(--faint); letter-spacing: .1em; }
   .log-wrap { min-height: 300px; }
 }
 
-/* ---- Mobile phones ---- */
 @media (max-width: 640px) {
   body { font-size: 14px; line-height: 1.65; }
 
@@ -337,7 +336,6 @@ footer p { font-size: 12px; color: var(--faint); letter-spacing: .1em; }
 
   .conn-line { font-size: 11px; line-height: 1.6; }
 
-  /* Run list -> compact 2-line cards */
   .runs-scroll { max-height: 320px; }
   .run-row {
     display: grid; grid-template-columns: auto auto 1fr;
@@ -372,7 +370,6 @@ footer p { font-size: 12px; color: var(--faint); letter-spacing: .1em; }
   footer p { font-size: 11px; letter-spacing: .04em; line-height: 1.7; }
 }
 
-/* ---- Very small screens ---- */
 @media (max-width: 380px) {
   h1 { font-size: 18px; }
   .head-right { gap: 10px; }

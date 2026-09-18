@@ -6,6 +6,7 @@ const GITHUB_API_VERSION = '2022-11-28';
 const POLL_INTERVAL_MS = 30000;
 const RUNS_PER_PAGE = 15;
 const LOG_MAX_LINES = 1200;
+const REPO_RE = /^[^/\s]+\/[^/\s]+$/;
 
 const state = {
   repo: null, token: null, defaultBranch: null,
@@ -66,7 +67,14 @@ const I18N = {
     secCookieLabel: 'B站 Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: '已设置 · 更新于 ', secretUnset: '未设置',
     cronLoadFail: '定时读取失败', noSchedule: '未配置定时',
-    dailyAt: '北京时间每天 {time}'
+    dailyAt: '北京时间每天 {time}',
+    ghNeedConnect: 'GitHub API: 请先连接仓库',
+    err401: 'Token 无效或已过期',
+    err403: '无权限或速率受限：',
+    err404: '未找到（检查仓库名与 Token 权限）：',
+    err422: '请求被拒绝：',
+    sodiumFail: 'libsodium 加载失败，无法加密保存密钥',
+    logFullHint: '完整日志请前往 GitHub 查看：'
   },
   en: {
     docTitle: 'Bilibili Checkin WebUI',
@@ -118,7 +126,14 @@ const I18N = {
     secCookieLabel: 'Bilibili Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: 'Set · updated ', secretUnset: 'Not set',
     cronLoadFail: 'Failed to load schedule', noSchedule: 'No schedule configured',
-    dailyAt: 'Daily at {time} (Beijing time)'
+    dailyAt: 'Daily at {time} (Beijing time)',
+    ghNeedConnect: 'GitHub API: connect first',
+    err401: 'Token invalid or expired',
+    err403: 'No permission or rate limited: ',
+    err404: 'Not found (check repo and token permissions): ',
+    err422: 'Request rejected: ',
+    sodiumFail: 'Failed to load libsodium, cannot encrypt secrets',
+    logFullHint: 'View full logs on GitHub: '
   }
 };
 
@@ -265,8 +280,12 @@ function ghHeaders(json) {
   return headers;
 }
 
+function repoApi(p) {
+  return '/repos/' + state.repo + p;
+}
+
 async function gh(path, opts = {}) {
-  if (!state.repo || !state.token) throw new Error('GitHub API: ' + (LANG === 'zh' ? '请先连接仓库' : 'connect first'));
+  if (!state.repo || !state.token) throw new Error(t('ghNeedConnect'));
   const res = await fetch(API + path, { method: opts.method || 'GET', headers: ghHeaders(!!opts.body), body: opts.body });
   if (res.status === 204) return { status: 204, data: null };
   const text = await res.text();
@@ -274,10 +293,10 @@ async function gh(path, opts = {}) {
   try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
   if (!res.ok) {
     let msg = (data && data.message) ? data.message : ('HTTP ' + res.status);
-    if (res.status === 401) msg = (LANG === 'zh' ? 'Token 无效或已过期' : 'Token invalid or expired');
-    else if (res.status === 403) msg = (LANG === 'zh' ? '无权限或速率受限：' : 'No permission or rate limited: ') + msg;
-    else if (res.status === 404) msg = (LANG === 'zh' ? '未找到（检查仓库名与 Token 权限）：' : 'Not found (check repo and token permissions): ') + msg;
-    else if (res.status === 422) msg = (LANG === 'zh' ? '请求被拒绝：' : 'Request rejected: ') + msg;
+    if (res.status === 401) msg = t('err401');
+    else if (res.status === 403) msg = t('err403') + msg;
+    else if (res.status === 404) msg = t('err404') + msg;
+    else if (res.status === 422) msg = t('err422') + msg;
     const err = new Error(msg);
     err.status = res.status;
     throw err;
@@ -286,7 +305,7 @@ async function gh(path, opts = {}) {
 }
 
 async function ghText(path) {
-  if (!state.repo || !state.token) throw new Error('GitHub API');
+  if (!state.repo || !state.token) throw new Error(t('ghNeedConnect'));
   const res = await fetch(API + path, { headers: ghHeaders(false) });
   if (!res.ok) throw new Error(t('logFetchFail') + 'HTTP ' + res.status);
   return await res.text();
@@ -321,9 +340,9 @@ function loadSodium() {
           if (!window.sodium || !window.sodium.ready) throw new Error('bad payload: ' + wrapperSrc);
           await window.sodium.ready;
           return window.sodium;
-        } catch (e) { /* try next source */ }
+        } catch (e) {}
       }
-      throw new Error(LANG === 'zh' ? 'libsodium 加载失败，无法加密保存密钥' : 'Failed to load libsodium, cannot encrypt secrets');
+      throw new Error(t('sodiumFail'));
     })();
   }
   return sodiumPromise;
@@ -373,13 +392,13 @@ async function connect(silent) {
   const repo = $('#repo').value.trim();
   const token = $('#token').value.trim();
   if (!repo || !token) { if (!silent) toast(t('toNeedRepo'), false); return false; }
-  if (!/^[^\/\s]+\/[^\/\s]+$/.test(repo)) { if (!silent) toast(t('toRepoFmt'), false); return false; }
+  if (!REPO_RE.test(repo)) { if (!silent) toast(t('toRepoFmt'), false); return false; }
   state.repo = repo;
   state.token = token;
   try {
-    const info = await gh('/repos/' + repo);
+    const info = await gh(repoApi(''));
     state.defaultBranch = info.data.default_branch || 'main';
-    const wfs = await gh('/repos/' + repo + '/actions/workflows');
+    const wfs = await gh(repoApi('/actions/workflows'));
     const all = wfs.data.workflows || [];
     const active = all.filter(w => w.state === 'active');
     const isBili = w => /bilibili/i.test(w.name) || /bilibili/i.test(w.path);
@@ -411,7 +430,7 @@ async function runNow() {
   if (!state.connected) return;
   $('#btnRun').disabled = true;
   try {
-    await gh('/repos/' + state.repo + '/actions/workflows/' + state.workflow.id + '/dispatches', {
+    await gh(repoApi('/actions/workflows/' + state.workflow.id + '/dispatches'), {
       method: 'POST',
       body: JSON.stringify({ ref: state.defaultBranch })
     });
@@ -473,7 +492,7 @@ function renderRuns() {
 async function loadRuns() {
   if (!state.connected) return;
   try {
-    const r = await gh('/repos/' + state.repo + '/actions/workflows/' + state.workflow.id + '/runs?per_page=' + RUNS_PER_PAGE);
+    const r = await gh(repoApi('/actions/workflows/' + state.workflow.id + '/runs?per_page=' + RUNS_PER_PAGE));
     state.runs = r.data.workflow_runs || [];
     renderRuns();
     updateBadge();
@@ -487,9 +506,9 @@ async function viewLog(runId) {
   box.innerHTML = '<div class="empty">' + esc(t('logLoading')) + '</div>';
   const run = state.runs.find(r => r.id === runId);
   const runUrl = run ? run.html_url : '';
-  const hint = runUrl ? ((LANG === 'zh' ? '完整日志请前往 GitHub 查看：' : 'View full logs on GitHub: ') + runUrl) : '';
+  const hint = runUrl ? (t('logFullHint') + runUrl) : '';
   try {
-    const jobs = await gh('/repos/' + state.repo + '/actions/runs/' + runId + '/jobs');
+    const jobs = await gh(repoApi('/actions/runs/' + runId + '/jobs'));
     const list = jobs.data.jobs || [];
     if (!list.length) { box.innerHTML = '<div class="empty">' + esc(t('noJobs')) + '</div>'; return; }
     let text = '';
@@ -497,7 +516,7 @@ async function viewLog(runId) {
       const st = runStatusText(j.status);
       const cc = j.conclusion ? (' · ' + runConclText(j.conclusion)) : '';
       text += '===== ' + j.name + ' (' + st + cc + ') =====\n';
-      try { text += await ghText('/repos/' + state.repo + '/actions/jobs/' + j.id + '/logs'); }
+      try { text += await ghText(repoApi('/actions/jobs/' + j.id + '/logs')); }
       catch (e) { text += '(' + e.message + ')\n' + hint + '\n'; }
       text += '\n';
     }
@@ -527,12 +546,12 @@ function validateLocal(tasks, coinNum, source) {
 
 async function upsertVariable(name, value) {
   try {
-    await gh('/repos/' + state.repo + '/actions/variables/' + name, {
+    await gh(repoApi('/actions/variables/' + name), {
       method: 'PATCH', body: JSON.stringify({ name, value })
     });
   } catch (e) {
     if (e.status !== 404) throw e;
-    await gh('/repos/' + state.repo + '/actions/variables', {
+    await gh(repoApi('/actions/variables'), {
       method: 'POST', body: JSON.stringify({ name, value })
     });
   }
@@ -540,7 +559,7 @@ async function upsertVariable(name, value) {
 
 async function deleteVariable(name) {
   try {
-    await gh('/repos/' + state.repo + '/actions/variables/' + name, { method: 'DELETE' });
+    await gh(repoApi('/actions/variables/' + name), { method: 'DELETE' });
   } catch (e) {}
 }
 
@@ -548,7 +567,7 @@ async function saveConfig() {
   if (!state.connected) return;
   const tasks = collectTasks();
   const coinNum = ($('#coinNum').value.trim() || '1');
-  const source = (document.querySelector('#coinSourceOpts input:checked') || {}).value || 'dynamic';
+  const source = document.querySelector('#coinSourceOpts input:checked')?.value || 'dynamic';
   const like = $('#coinLike').checked ? '1' : '0';
   const err = validateLocal(tasks, coinNum, source);
   if (err) { toast(err, false); return; }
@@ -562,7 +581,7 @@ async function saveConfig() {
     await upsertVariable('COIN_VIDEO_SOURCE', source);
 
     const cookie = $('#cookie').value.trim();
-    const refreshToken = ($('#refreshToken') || {}).value ? $('#refreshToken').value.trim() : '';
+    const refreshToken = $('#refreshToken').value.trim();
     const pushToken = $('#pushToken').value.trim();
     const saved = [t('toVarsSaved')];
     if (cookie) { await saveSecret('BILIBILI_COOKIE', cookie); saved.push(t('toCookieUpd')); $('#cookie').value = ''; }
@@ -579,14 +598,14 @@ async function saveConfig() {
 
 async function saveSecret(name, value) {
   const sodium = await loadSodium();
-  const pk = await gh('/repos/' + state.repo + '/actions/secrets/public-key');
+  const pk = await gh(repoApi('/actions/secrets/public-key'));
   const keyBytes = Uint8Array.from(atob(pk.data.key), c => c.charCodeAt(0));
   const msgBytes = new TextEncoder().encode(value);
   // seal 的 base64 输出是 URL-safe 且无填充，GitHub 只接受标准 base64，这里转码并补齐
   const sealed = sodium.crypto_box_seal(msgBytes, keyBytes, 'base64');
   const encrypted_value = sealed.replace(/-/g, '+').replace(/_/g, '/')
     + '='.repeat((4 - sealed.length % 4) % 4);
-  await gh('/repos/' + state.repo + '/actions/secrets/' + name, {
+  await gh(repoApi('/actions/secrets/' + name), {
     method: 'PUT',
     body: JSON.stringify({ encrypted_value, key_id: pk.data.key_id })
   });
@@ -598,18 +617,17 @@ function defaultTaskMap() {
 
 async function loadVariables() {
   try {
-    const r = await gh('/repos/' + state.repo + '/actions/variables');
+    const r = await gh(repoApi('/actions/variables'));
     const map = {};
     (r.data.variables || []).forEach(v => map[v.name] = v.value);
-    const defaults = defaultTaskMap();
-    const tasks = String(!map.TASK_CONFIG ? Object.keys(defaults).join(',') : map.TASK_CONFIG)
+    const tasks = (map.TASK_CONFIG || Object.keys(defaultTaskMap()).join(','))
       .split(',').map(s => s.trim()).filter(Boolean);
     document.querySelectorAll('#taskChips input').forEach(cb => {
       cb.checked = tasks.includes(cb.value);
     });
-    $('#coinNum').value = map.COIN_ADD_NUM != null ? map.COIN_ADD_NUM : '1';
-    $('#coinLike').checked = (map.COIN_SELECT_LIKE != null ? map.COIN_SELECT_LIKE : '1') === '1';
-    const src = map.COIN_VIDEO_SOURCE != null ? map.COIN_VIDEO_SOURCE : 'dynamic';
+    $('#coinNum').value = map.COIN_ADD_NUM ?? '1';
+    $('#coinLike').checked = (map.COIN_SELECT_LIKE ?? '1') === '1';
+    const src = map.COIN_VIDEO_SOURCE ?? 'dynamic';
     document.querySelectorAll('#coinSourceOpts input').forEach(rb => rb.checked = rb.value === src);
   } catch (e) {
     toast(t('toVarsLoadFail') + e.message, false);
@@ -619,12 +637,11 @@ async function loadVariables() {
 async function loadSecrets() {
   const box = $('#secretStatus');
   try {
-    const r = await gh('/repos/' + state.repo + '/actions/secrets');
+    const r = await gh(repoApi('/actions/secrets'));
     const map = {};
     (r.data.secrets || []).forEach(s => map[s.name] = s.updated_at);
     const labels = { BILIBILI_COOKIE: t('secCookieLabel'), BILIBILI_REFRESH_TOKEN: t('secRefreshLabel'), PUSH_PLUS_TOKEN: t('secPushLabel') };
-    const names = ['BILIBILI_COOKIE', 'BILIBILI_REFRESH_TOKEN', 'PUSH_PLUS_TOKEN'];
-    box.innerHTML = names.map(n => {
+    box.innerHTML = Object.keys(labels).map(n => {
       const set = map[n];
       const v = set ? (t('secretSet') + fmtTime(set)) : t('secretUnset');
       return '<div class="secret-line"><span class="k">' + labels[n] + ' · ' + n + '</span><span class="v">' + esc(v) + '</span></div>';
@@ -658,7 +675,7 @@ async function loadCron() {
   if (!state.workflow || !state.workflow.path) return;
   try {
     const seg = state.workflow.path.split('/').map(encodeURIComponent).join('/');
-    const r = await gh('/repos/' + state.repo + '/contents/' + seg + '?ref=' + encodeURIComponent(state.defaultBranch));
+    const r = await gh(repoApi('/contents/' + seg + '?ref=' + encodeURIComponent(state.defaultBranch)));
     state.file = { sha: r.data.sha, content: b64decodeUtf8(r.data.content) };
     const m = state.file.content.match(/cron:\s*'?([\d\*\/\,\-]+)'?/);
     state.cron = m ? m[1] : '';
@@ -685,7 +702,7 @@ async function saveCron() {
       ? state.file.content.replace(/cron:\s*'[^']*'/, "cron: '" + val + "'")
       : state.file.content.replace(/cron:\s*[^\s#]+/, 'cron: ' + val);
     const seg = state.workflow.path.split('/').map(encodeURIComponent).join('/');
-    await gh('/repos/' + state.repo + '/contents/' + seg, {
+    await gh(repoApi('/contents/' + seg), {
       method: 'PUT',
       body: JSON.stringify({
         message: 'chore: adjust check-in schedule to ' + val,

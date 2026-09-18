@@ -9,13 +9,17 @@ BEIJING_TZ = timezone(timedelta(hours=8))
 REPORT_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-def format_push_message(all_results):
+def format_push_message(all_results: list[dict]) -> str:
     content = ["### Bilibili 任务报告\n"]
 
     for result in all_results:
         user_info = result.get('user_info')
         if user_info:
-            content.append(f"--- \n#### 账号: {user_info['uname']} (Lv.{user_info['level_info']['current_level']})")
+            level_info = user_info.get('level_info') or {}
+            content.append(
+                f"--- \n#### 账号: {user_info.get('uname')} "
+                f"(Lv.{level_info.get('current_level')})"
+            )
         else:
             content.append(f"--- \n#### 账号 {result['account_index']}")
 
@@ -25,7 +29,7 @@ def format_push_message(all_results):
             content.append(f"- **{name}**: {status_icon}{reason}")
 
         if user_info:
-            content.append(f"- **硬币余额**: {user_info['money']}")
+            content.append(f"- **硬币余额**: {user_info.get('money')}")
 
     beijing_time = datetime.now(BEIJING_TZ).strftime(REPORT_TIME_FORMAT)
     content.append(f"\n> 报告时间: {beijing_time}")
@@ -33,7 +37,7 @@ def format_push_message(all_results):
     return "\n".join(content)
 
 
-def send_to_pushplus(token, title, content):
+def send_to_pushplus(token: str, title: str, content: str) -> None:
     data = {"token": token, "title": title, "content": content, "template": "markdown"}
     try:
         res = requests.post(PUSHPLUS_URL, json=data, timeout=REQUEST_TIMEOUT)
