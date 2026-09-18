@@ -16,7 +16,7 @@ DEFAULT_COIN_SELECT_LIKE = '1'
 DEFAULT_COIN_VIDEO_SOURCE = '动态'
 FALLBACK_BVID = 'BV1GJ411x7h7'
 
-IGNORE_FAIL_KEYWORDS = ("未配置", "跳过", "已下线")
+IGNORE_FAIL_KEYWORDS = ("未配置", "跳过", "已下线", "重复签到")
 REFRESH_SKIP_KEYWORDS = ("刷新", "Cookie", "refresh", "ac_time_value", "pycryptodome")
 COIN_DAILY_LIMIT = 5
 SEPARATOR = '-' * 40
