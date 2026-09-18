@@ -25,8 +25,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Bilibili Task
+        id: run_task
         env:
           BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+          BILIBILI_REFRESH_TOKEN: ${{ secrets.BILIBILI_REFRESH_TOKEN }}
           PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PLUS_TOKEN }}
           TASK_CONFIG: ${{ vars.TASK_CONFIG }}
           COIN_ADD_NUM: ${{ vars.COIN_ADD_NUM }}
@@ -34,3 +36,23 @@ jobs:
           COIN_VIDEO_SOURCE: ${{ vars.COIN_VIDEO_SOURCE }}
 
         run: python main.py
+
+      - name: Sync refreshed cookies to Secrets
+        if: steps.run_task.outputs.COOKIE_REFRESHED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.COOKIE_REFRESH_PAT }}
+          COOKIE_NEW: ${{ steps.run_task.outputs.BILIBILI_COOKIE_NEW }}
+          REFRESH_NEW: ${{ steps.run_task.outputs.BILIBILI_REFRESH_TOKEN_NEW }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::Cookie 已刷新但未配置 COOKIE_REFRESH_PAT,无法自动回写 Secrets,请手动更新 BILIBILI_COOKIE / BILIBILI_REFRESH_TOKEN。"
+            exit 0
+          fi
+          if [ -n "$COOKIE_NEW" ]; then
+            gh secret set BILIBILI_COOKIE --body "$COOKIE_NEW"
+            echo "BILIBILI_COOKIE 已回写。"
+          fi
+          if [ -n "$REFRESH_NEW" ]; then
+            gh secret set BILIBILI_REFRESH_TOKEN --body "$REFRESH_NEW"
+            echo "BILIBILI_REFRESH_TOKEN 已回写。"
+          fi

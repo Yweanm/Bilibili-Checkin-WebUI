@@ -31,6 +31,7 @@ const I18N = {
     cronLabel: 'CRON 表达式',
     btnSaveCron: '保存定时',
     cookieLabel: 'B站 Cookie',
+    refreshLabel: 'Refresh Token',
     tasksLabel: '执行任务',
     taskLive: '直播签到', taskManga: '漫画签到', taskShare: '分享视频', taskCoin: '视频投币',
     coinNumLabel: '投币数量',
@@ -46,6 +47,7 @@ const I18N = {
     phRepo: 'yourname/bilibili_checkin',
     phToken: 'ghp_xxx / github_pat_xxx',
     phCookie: 'SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx  多账号用 ### 分隔',
+    phRefresh: 'ac_time_value 多账号用 ### 分隔,留空=不自动刷新',
     phPush: '用于微信推送',
     phCron: '0 3 * * *',
     footer: 'Token 存储于浏览器 localStorage · 请勿在公共设备使用 · 仅供学习交流使用',
@@ -56,12 +58,12 @@ const I18N = {
     toNeedRepo: '请填写仓库与 Token', toRepoFmt: '仓库格式应为 owner/repo',
     errNoWorkflow: '仓库中未找到可用的 workflow',
     toTriggered: '已触发运行，稍后自动刷新', toTriggerFail: '触发失败：', toConnected: '连接成功',
-    toSaveFail: '保存失败：', toVarsSaved: '仓库变量已保存', toCookieUpd: 'Cookie 已更新', toPushUpd: 'PushPlus 已更新',
+    toSaveFail: '保存失败：', toVarsSaved: '仓库变量已保存', toCookieUpd: 'Cookie 已更新', toPushUpd: 'PushPlus 已更新', toRefreshUpd: 'RefreshToken 已更新',
     toVarsLoadFail: '仓库变量读取失败：',
     toCronBad: 'Cron 格式不正确，应为 5 段式，如 0 3 * * *', toCronSaved: '定时已保存（commit 已提交）',
     errCoinRange: '每日投币数量必须是 0–5 的整数', errSource: '投币来源只能是 dynamic（动态）或 ranking（排行榜）', errTaskChars: '执行任务选项包含非法字符',
     runsLoadFail: '运行记录加载失败: ', logFetchFail: '日志获取失败: ', secretLoadFail: '仓库密钥状态读取失败: ',
-    secCookieLabel: 'B站 Cookie', secPushLabel: 'PushPlus Token',
+    secCookieLabel: 'B站 Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: '已设置 · 更新于 ', secretUnset: '未设置',
     cronLoadFail: '定时读取失败', noSchedule: '未配置定时',
     dailyAt: '北京时间每天 {time}'
@@ -81,6 +83,7 @@ const I18N = {
     cronLabel: 'Cron expression',
     btnSaveCron: 'Save schedule',
     cookieLabel: 'Bilibili Cookie',
+    refreshLabel: 'Refresh Token',
     tasksLabel: 'Tasks',
     taskLive: 'Live sign-in', taskManga: 'Manga sign-in', taskShare: 'Share video', taskCoin: 'Add coin',
     coinNumLabel: 'Coins per day',
@@ -96,6 +99,7 @@ const I18N = {
     phRepo: 'yourname/bilibili_checkin',
     phToken: 'ghp_xxx / github_pat_xxx',
     phCookie: 'SESSDATA=xxx; bili_jct=xxx; DedeUserID=xxx  separate accounts with ###',
+    phRefresh: 'ac_time_value, separate accounts with ###, empty=no auto-refresh',
     phPush: 'For WeChat push notification',
     phCron: '0 3 * * *',
     footer: 'Token is stored in browser localStorage · Do not use on shared devices · For learning purposes only',
@@ -106,12 +110,12 @@ const I18N = {
     toNeedRepo: 'Please fill in the repository and token', toRepoFmt: 'Repository must be in owner/repo format',
     errNoWorkflow: 'No active workflow found in this repository',
     toTriggered: 'Triggered, refreshing shortly', toTriggerFail: 'Trigger failed: ', toConnected: 'Connected',
-    toSaveFail: 'Save failed: ', toVarsSaved: 'Repository variables saved', toCookieUpd: 'Cookie updated', toPushUpd: 'PushPlus token updated',
+    toSaveFail: 'Save failed: ', toVarsSaved: 'Repository variables saved', toCookieUpd: 'Cookie updated', toPushUpd: 'PushPlus token updated', toRefreshUpd: 'Refresh token updated',
     toVarsLoadFail: 'Failed to load variables: ',
     toCronBad: 'Invalid cron, expected 5 fields, e.g. 0 3 * * *', toCronSaved: 'Schedule saved (commit pushed)',
     errCoinRange: 'Coins per day must be an integer from 0 to 5', errSource: 'Source must be dynamic or ranking', errTaskChars: 'Task list contains invalid characters',
     runsLoadFail: 'Failed to load runs: ', logFetchFail: 'Failed to fetch log: ', secretLoadFail: 'Failed to load secrets: ',
-    secCookieLabel: 'Bilibili Cookie', secPushLabel: 'PushPlus Token',
+    secCookieLabel: 'Bilibili Cookie', secPushLabel: 'PushPlus Token', secRefreshLabel: 'Refresh Token',
     secretSet: 'Set · updated ', secretUnset: 'Not set',
     cronLoadFail: 'Failed to load schedule', noSchedule: 'No schedule configured',
     dailyAt: 'Daily at {time} (Beijing time)'
@@ -123,6 +127,7 @@ const HELP = {
     repo: { t: '仓库', n: 'owner/repo', b: 'GitHub 仓库地址，格式为 用户名/仓库名，例如 yourname/bilibili_checkin。签到任务通过该仓库的 GitHub Actions 运行' },
     token: { t: '访问令牌', n: 'PERSONAL ACCESS TOKEN', b: 'GitHub 个人访问令牌：经典 Token 勾选 repo 权限；Fine-grained Token 勾选 Actions、Variables、Secrets、Contents 的读写权限。令牌仅保存在本浏览器 localStorage，不会上传到任何第三方，请勿在公共设备使用' },
     cookie: { t: 'B站 Cookie', n: 'BILIBILI_COOKIE · Secret 密钥', b: '浏览器登录 B 站后按 F12，从网络请求标头中复制 Cookie，需包含 SESSDATA、bili_jct、DedeUserID 字段。多账号用 ### 分隔。以密文写入仓库 Secrets，只可覆盖、不可读取；留空表示不修改' },
+    refresh: { t: 'Refresh Token', n: 'BILIBILI_REFRESH_TOKEN · Secret 密钥', b: '即浏览器 localStorage 的 ac_time_value：F12→Application→Local Storage→bilibili.com→复制 ac_time_value，多账号用 ### 与 Cookie 一一对应。配置后任务前自动检查刷新并回写 Secrets；留空表示不自动刷新' },
     tasks: { t: '执行任务', n: 'TASK_CONFIG · Variable 变量', b: '控制每次执行的任务，用英文逗号分隔：live_sign 直播签到、manga_sign 漫画签到、share_video 分享视频、add_coin 视频投币。删除或留空该变量时执行全部默认任务，未知任务名会被忽略；观看视频为固定任务，始终执行' },
     coinNum: { t: '投币数量', n: 'COIN_ADD_NUM · Variable 变量', b: '每日投币数量，0–5 的整数，填 0 表示不投币。实际投币数取配置值、硬币余额与 5 的最小值，硬币不足或当日投币达到上限时会自动跳过' },
     coinSource: { t: '投币来源', n: 'COIN_VIDEO_SOURCE · Variable 变量', b: '投币目标视频的来源：dynamic 取自动态视频列表，ranking 取自排行榜视频' },
@@ -134,6 +139,7 @@ const HELP = {
     repo: { t: 'Repository', n: 'owner/repo', b: 'GitHub repository in the form username/repo, e.g. yourname/bilibili_checkin. Check-in tasks run via the GitHub Actions of this repository' },
     token: { t: 'Access Token', n: 'PERSONAL ACCESS TOKEN', b: 'GitHub personal access token: classic token needs the repo scope; fine-grained token needs read/write for Actions, Variables, Secrets and Contents. The token is stored only in this browser (localStorage), never sent to any third party. Do not use on shared devices' },
     cookie: { t: 'Bilibili Cookie', n: 'BILIBILI_COOKIE · Secret', b: 'Log in to bilibili.com in a browser, press F12 and copy the Cookie from a request header. It must contain SESSDATA, bili_jct and DedeUserID. Separate multiple accounts with ###. Stored encrypted as a repository Secret (overwrite only, never readable); leave empty to keep unchanged' },
+    refresh: { t: 'Refresh Token', n: 'BILIBILI_REFRESH_TOKEN · Secret', b: 'The ac_time_value in browser localStorage: F12→Application→Local Storage→bilibili.com→copy ac_time_value. Separate accounts with ### matching cookies. Enables auto-refresh before tasks; leave empty to disable' },
     tasks: { t: 'Tasks', n: 'TASK_CONFIG · Variable', b: 'Controls which tasks run each time, comma separated: live_sign (live sign-in), manga_sign (manga sign-in), share_video (share video), add_coin (add coin). Removing or clearing the variable runs all default tasks; unknown task names are ignored. Watching videos is a fixed task that always runs' },
     coinNum: { t: 'Coins per day', n: 'COIN_ADD_NUM · Variable', b: 'Number of coins per day, integer from 0 to 5; 0 disables coin dropping. The actual count is the minimum of the configured value, your coin balance and 5; it skips automatically when coins are insufficient or the daily limit is reached' },
     coinSource: { t: 'Coin video source', n: 'COIN_VIDEO_SOURCE · Variable', b: 'Where the coin target videos come from: dynamic (dynamic feed) or ranking (ranking list)' },
@@ -556,9 +562,11 @@ async function saveConfig() {
     await upsertVariable('COIN_VIDEO_SOURCE', source);
 
     const cookie = $('#cookie').value.trim();
+    const refreshToken = ($('#refreshToken') || {}).value ? $('#refreshToken').value.trim() : '';
     const pushToken = $('#pushToken').value.trim();
     const saved = [t('toVarsSaved')];
     if (cookie) { await saveSecret('BILIBILI_COOKIE', cookie); saved.push(t('toCookieUpd')); $('#cookie').value = ''; }
+    if (refreshToken) { await saveSecret('BILIBILI_REFRESH_TOKEN', refreshToken); saved.push(t('toRefreshUpd')); $('#refreshToken').value = ''; }
     if (pushToken) { await saveSecret('PUSH_PLUS_TOKEN', pushToken); saved.push(t('toPushUpd')); $('#pushToken').value = ''; }
     await loadSecrets();
     toast(saved.join(' · '));
@@ -614,8 +622,8 @@ async function loadSecrets() {
     const r = await gh('/repos/' + state.repo + '/actions/secrets');
     const map = {};
     (r.data.secrets || []).forEach(s => map[s.name] = s.updated_at);
-    const labels = { BILIBILI_COOKIE: t('secCookieLabel'), PUSH_PLUS_TOKEN: t('secPushLabel') };
-    const names = ['BILIBILI_COOKIE', 'PUSH_PLUS_TOKEN'];
+    const labels = { BILIBILI_COOKIE: t('secCookieLabel'), BILIBILI_REFRESH_TOKEN: t('secRefreshLabel'), PUSH_PLUS_TOKEN: t('secPushLabel') };
+    const names = ['BILIBILI_COOKIE', 'BILIBILI_REFRESH_TOKEN', 'PUSH_PLUS_TOKEN'];
     box.innerHTML = names.map(n => {
       const set = map[n];
       const v = set ? (t('secretSet') + fmtTime(set)) : t('secretUnset');
