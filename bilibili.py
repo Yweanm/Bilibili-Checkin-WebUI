@@ -51,9 +51,10 @@ class BilibiliTask:
                 logger.error(f"请求{name}API异常: {e}")
             return None, str(e)
         if not isinstance(data, dict):
+            snippet = str(data)[:100]
             if not silent:
-                logger.error(f"请求{name}API异常: 响应JSON格式异常")
-            return None, '响应JSON格式异常'
+                logger.error(f"请求{name}API异常: 响应非JSON对象: {snippet}")
+            return None, f'响应JSON格式异常: {snippet}'
         return data, None
 
     def _call(self, method: str, url: str, *, name: str = '', silent: bool = False,
@@ -65,7 +66,11 @@ class BilibiliTask:
             return False, err
         if not data:
             return False, fail
-        return False, data.get('message', fail)
+        reason = data.get('message') or data.get('msg')
+        if not reason:
+            code = data.get('code')
+            reason = f'{fail}(code={code})' if code not in (None, '') else fail
+        return False, reason
 
     def _csrf_call(self, method: str, url: str, success: SuccessSpec, fail: str,
                    **kwargs) -> tuple[bool, str]:
@@ -73,28 +78,34 @@ class BilibiliTask:
             return False, CSRF_MISSING
         return self._call(method, url, success=success, fail=fail, silent=True, **kwargs)
 
-    def get_user_info(self) -> dict | None:
-        data, _ = self._request_json('GET', f'{MAIN_API}/x/web-interface/nav', '用户信息')
+    def get_user_info(self) -> tuple[dict | None, str | None]:
+        data, err = self._request_json('GET', f'{MAIN_API}/x/web-interface/nav', '用户信息')
         if data is None:
-            return None
+            return None, err
         if data.get('code') == 0:
-            return data.get('data')
-        logger.warning(f"获取用户信息失败: {data.get('message')}")
-        return None
+            return data.get('data'), None
+        reason = data.get('message') or data.get('msg') or f"code={data.get('code')}"
+        logger.warning(f"获取用户信息失败: {reason}")
+        return None, reason
 
-    def _bvids(self, url: str, name: str, key: str) -> list[str]:
-        data, _ = self._request_json('GET', url, name)
+    def _bvids(self, url: str, name: str, key: str) -> tuple[list[str], str | None]:
+        data, err = self._request_json('GET', url, name)
         if not data or data.get('code') != 0:
-            return []
+            if data:
+                reason = data.get('message') or data.get('msg') or f"code={data.get('code')}"
+            else:
+                reason = err or '无响应'
+            return [], f'{name}失败: {reason}'
         archives = data.get('data') or {}
-        return [video['bvid'] for video in archives.get(key, [])
-                if isinstance(video, dict) and video.get('bvid')]
+        bvids = [video['bvid'] for video in archives.get(key, [])
+                 if isinstance(video, dict) and video.get('bvid')]
+        return bvids, None
 
-    def get_dynamic_videos(self) -> list[str]:
+    def get_dynamic_videos(self) -> tuple[list[str], str | None]:
         return self._bvids(f'{MAIN_API}/x/web-interface/dynamic/region?ps=5&rid=1',
                            '动态视频', 'archives')
 
-    def get_ranking_videos(self) -> list[str]:
+    def get_ranking_videos(self) -> tuple[list[str], str | None]:
         return self._bvids(f'{MAIN_API}/x/web-interface/ranking/v2?rid=0&type=all',
                            '排行榜视频', 'list')
 

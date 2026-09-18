@@ -67,14 +67,14 @@ def execute_coin_task(bili: BilibiliTask, user_info: dict, config: dict) -> tupl
     coins_to_add = min(coins_to_add, coin_balance, COIN_DAILY_LIMIT)
 
     if config.get('COIN_VIDEO_SOURCE') == '排行榜':
-        video_list = bili.get_ranking_videos()
+        video_list, list_err = bili.get_ranking_videos()
         logger.info("获取排行榜视频作为投币目标。")
     else:
-        video_list = bili.get_dynamic_videos()
+        video_list, list_err = bili.get_dynamic_videos()
         logger.info("获取动态视频作为投币目标。")
 
     if not video_list:
-        return False, "无法获取视频列表"
+        return False, list_err or "无法获取视频列表"
 
     added_coins = 0
     for bvid in video_list:
@@ -102,13 +102,13 @@ def run_all_tasks_for_account(bili: BilibiliTask, config: dict) -> tuple[dict, d
     if not tasks_to_run:
         tasks_to_run = DEFAULT_TASKS
 
-    user_info = bili.get_user_info()
+    user_info, login_err = bili.get_user_info()
     if not user_info:
-        return {'登录检查': (False, 'Cookie失效或网络问题')}, None
+        return {'登录检查': (False, login_err or 'Cookie失效或网络问题')}, None
 
     logger.info(f"账号名称: {mask_string(user_info.get('uname'))}")
 
-    video_list = bili.get_dynamic_videos()
+    video_list, _ = bili.get_dynamic_videos()
     bvid = video_list[0] if video_list else FALLBACK_BVID
 
     tasks_result = {}
@@ -214,7 +214,7 @@ def run_all_accounts(config: dict) -> tuple[list[dict], bool]:
         bili = BilibiliTask(new_cookie)
         tasks_result, user_info = run_all_tasks_for_account(bili, config)
         tasks_result = {"Cookie刷新": (refreshed or "跳过" in refresh_msg or "无需" in refresh_msg, refresh_msg), **tasks_result}
-        final_user_info = bili.get_user_info() if user_info else None
+        final_user_info = bili.get_user_info()[0] if user_info else None
         all_results.append({'account_index': i, 'tasks': tasks_result, 'user_info': final_user_info})
 
         valid_task_count, valid_success_count = _log_account_tasks(i, tasks_result)
